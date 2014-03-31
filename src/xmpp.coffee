@@ -44,7 +44,7 @@ class XmppBot extends Adapter
   # Instead of reconnecting, simply restart hubot
   reconnect: () ->
     if @reconnectingNow
-      @robot.logger.warn "Already reconnecting"
+      @robot.logger.warning "Already reconnecting"
       return
     else
       @reconnectingNow = true
