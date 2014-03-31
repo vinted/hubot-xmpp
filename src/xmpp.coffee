@@ -39,21 +39,9 @@ class XmppBot extends Adapter
     @connected = false
     @makeClient()
 
-  # Only try to reconnect 5 times
+  # Instead of reconnecting, simply restart hubot
   reconnect: () ->
-    @reconnectTryCount += 1
-    if @reconnectTryCount == 5
-      @robot.logger.error 'Unable to reconnect to jabber server, restarting.'
-      @robot.emit 'hubot:restart'
-
-    @client.removeListener 'error', @.error
-    @client.removeListener 'online', @.online
-    @client.removeListener 'offline', @.offline
-    @client.removeListener 'stanza', @.read
-
-    setTimeout () =>
-      @makeClient()
-    , 5000
+    @robot.emit 'hubot:restart'
 
   makeClient: () ->
     options = @options
