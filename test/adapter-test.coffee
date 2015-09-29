@@ -655,6 +655,22 @@ describe 'XmppBot', ->
 
       bot.send envelope, "<p><span style='color: #0000ff;'>testing</span></p>"
 
+    it 'should truncate long messages', (done) ->
+      envelope =
+        user:
+          name: 'mark'
+          type: 'groupchat'
+        room: 'test@example.com'
+
+      bot.client.send = (msg) ->
+        assert.equal msg.parent.attrs.to, 'test@example.com'
+        assert.equal msg.parent.attrs.type, 'groupchat'
+        assert.equal msg.getText().length, 10000
+        assert.equal msg.getText().slice(-23), '... [message truncated]'
+        done()
+
+      bot.send envelope, Array(1500).join('testing')
+
   describe '#online', () ->
     bot = null
     beforeEach () ->

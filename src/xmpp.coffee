@@ -358,6 +358,8 @@ class XmppBot extends Adapter
         message.attrs.to ?= params.to
         message.attrs.type ?= params.type
       else
+        msg = msg.slice(0, 9977) + '... [message truncated]' if msg.length > 10000
+
         parsedMsg = try new ltx.parse(msg)
         bodyMsg   = new ltx.Element('message', params).
                     c('body').t(msg)
