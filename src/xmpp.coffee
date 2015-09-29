@@ -79,7 +79,7 @@ class XmppBot extends Adapter
 
   configClient: (options) ->
     @client.connection.socket.setTimeout 0
-    @client.connection.socket.setKeepAlive true, options.keepaliveInterval
+    setInterval(@ping, options.keepaliveInterval)
 
     @client.on 'error', @.error
     @client.on 'online', @.online
@@ -110,6 +110,13 @@ class XmppBot extends Adapter
     @emit if @connected then 'reconnected' else 'connected'
     @connected = true
     @reconnectTryCount = 0
+
+  ping: =>
+    ping = new ltx.Element('iq', type: 'get')
+    ping.c('ping', xmlns: 'urn:xmpp:ping')
+
+    @robot.logger.debug "[sending ping] #{ping}"
+    @client.send ping
 
   parseRooms: (items) ->
     rooms = []
@@ -254,7 +261,8 @@ class XmppBot extends Adapter
         )
       when 'available'
         # If the presence is from us, track that.
-        if fromJID.resource == @robot.name
+        if fromJID.resource is @robot.name or
+           stanza.getChild?('nick')?.getText?() is @robot.name
           @heardOwnPresence = true
           return
 
@@ -275,7 +283,7 @@ class XmppBot extends Adapter
         @robot.logger.debug "Available received from #{fromJID.toString()} in room #{room} and private chat jid is #{privateChatJID?.toString()}"
 
         # Use the resource part from the room jid as this
-        # is more likelly the user's name
+        # is most likely the user's name
         user = @robot.brain.userForId(fromJID.resource,
           room: room,
           jid: fromJID.toString(),
@@ -350,8 +358,16 @@ class XmppBot extends Adapter
         message.attrs.to ?= params.to
         message.attrs.type ?= params.type
       else
-        message = new ltx.Element('message', params).
-                  c('body').t(msg)
+        parsedMsg = try new ltx.parse(msg)
+        bodyMsg   = new ltx.Element('message', params).
+                    c('body').t(msg)
+        message   = if parsedMsg?
+                      bodyMsg.up().
+                      c('html',{xmlns:'http://jabber.org/protocol/xhtml-im'}).
+                      c('body',{xmlns:'http://www.w3.org/1999/xhtml'}).
+                      cnode(parsedMsg)
+                    else
+                      bodyMsg
 
       @client.send message
 
@@ -379,4 +395,3 @@ class XmppBot extends Adapter
 
 exports.use = (robot) ->
   new XmppBot robot
-

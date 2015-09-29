@@ -69,6 +69,30 @@ describe 'XmppBot', ->
           done()
         bot.joinRoom protectedRoom
 
+  describe '#ping()', ->
+    bot = Bot.use()
+    bot.client =
+      stub: 'xmpp client'
+
+    room =
+      jid: 'test@example.com'
+      password: false
+
+    beforeEach ->
+      bot.options =
+        rooms: [room]
+      bot.robot =
+        name: 'bot'
+        logger:
+          debug: () ->
+
+    it 'should call @client.send() with a proper ping element', (done) ->
+      bot.client.send = (message) ->
+        assert.equal message.name, 'iq'
+        assert.equal message.attrs.type, 'get'
+        done()
+      bot.ping()
+
   describe '#leaveRoom()', ->
     bot = Bot.use()
     bot.client =
@@ -414,7 +438,7 @@ describe 'XmppBot', ->
       bot.readPresence stanza
 
     it 'should set @heardOwnPresence when the bot presence is received', () ->
-      stanza =
+      stanza1 =
         attrs:
           type: 'available'
           to: 'bot@example.com'
@@ -426,7 +450,20 @@ describe 'XmppBot', ->
                 attrs:
                   jid: 'bot@example.com'
 
-      bot.readPresence stanza
+      stanza2 =
+        attrs:
+          type: 'available'
+          to: 'bot@example.com'
+          from: 'test@example.com/2578936351142164331380805'
+        getChild: ->
+          stub =
+            getText: ->
+              stub = 'bot'
+
+      bot.readPresence stanza1
+      assert.ok bot.heardOwnPresence
+      bot.heardOwnPresence = false
+      bot.readPresence stanza2
       assert.ok bot.heardOwnPresence
 
     # Don't trigger enter messages in a room, until we get our
@@ -594,6 +631,30 @@ describe 'XmppBot', ->
 
       bot.send envelope, el
 
+    it 'should send XHTML messages to the room', (done) ->
+      envelope =
+        user:
+          name: 'mark'
+          type: 'groupchat'
+        room: 'test@example.com'
+
+      bot.client.send = (msg) ->
+        assert.equal msg.root().attrs.to, 'test@example.com'
+        assert.equal msg.root().attrs.type, 'groupchat'
+        assert.equal msg.root().children[0].getText(), "<p><span style='color: #0000ff;'>testing</span></p>"
+        assert.equal msg.parent.parent.name, 'html'
+        assert.equal msg.parent.parent.attrs.xmlns, 'http://jabber.org/protocol/xhtml-im'
+        assert.equal msg.parent.name, 'body'
+        assert.equal msg.parent.attrs.xmlns, 'http://www.w3.org/1999/xhtml'
+        assert.equal msg.name, 'p'
+        assert.equal msg.children[0].name, 'span'
+        assert.equal msg.children[0].attrs.style, 'color: #0000ff;'
+        assert.equal msg.children[0].getText(), 'testing'
+
+        done()
+
+      bot.send envelope, "<p><span style='color: #0000ff;'>testing</span></p>"
+
   describe '#online', () ->
     bot = null
     beforeEach () ->
@@ -744,10 +805,12 @@ describe 'XmppBot', ->
 
   describe '#configClient', ->
     bot = null
+    clock = null
     options =
       keepaliveInterval: 30000
 
     beforeEach () ->
+      clock = sinon.useFakeTimers()
       bot = Bot.use()
       bot.client =
         connection:
@@ -755,17 +818,21 @@ describe 'XmppBot', ->
         on: ->
         send: ->
 
+    afterEach () ->
+      clock.restore()
+
     it 'should set timeouts', () ->
       bot.client.connection.socket.setTimeout = (val) ->
         assert.equal 0, val, 'Should be 0'
-      bot.client.connection.socket.setKeepAlive = (mode, duration) ->
-        assert.ok mode, 'Should turn keepalive on'
-        assert.equal options.keepaliveInterval, duration
+      bot.ping = sinon.stub()
+
       bot.configClient(options)
+
+      clock.tick(options.keepaliveInterval)
+      assert(bot.ping.called)
 
     it 'should set event listeners', () ->
       bot.client.connection.socket.setTimeout = ->
-      bot.client.connection.socket.setKeepAlive = ->
 
       onCalls = []
       bot.client.on = (event, cb) ->
