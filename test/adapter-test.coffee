@@ -90,6 +90,7 @@ describe 'XmppBot', ->
       bot.client.send = (message) ->
         assert.equal message.name, 'iq'
         assert.equal message.attrs.type, 'get'
+        assert.ok message.attrs.id.length > 0
         done()
       bot.ping()
 

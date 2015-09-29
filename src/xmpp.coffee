@@ -112,7 +112,7 @@ class XmppBot extends Adapter
     @reconnectTryCount = 0
 
   ping: =>
-    ping = new ltx.Element('iq', type: 'get')
+    ping = new ltx.Element('iq', type: 'get', id: 'hubot1')
     ping.c('ping', xmlns: 'urn:xmpp:ping')
 
     @robot.logger.debug "[sending ping] #{ping}"
