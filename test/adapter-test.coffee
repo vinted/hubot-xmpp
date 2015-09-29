@@ -783,6 +783,7 @@ describe 'XmppBot', ->
       bot.robot =
         logger:
           error: sinon.stub()
+        emit: sinon.stub()
       bot.client =
         removeListener: ->
       clock = sinon.useFakeTimers()
@@ -802,11 +803,8 @@ describe 'XmppBot', ->
       clock.tick 5001
 
     it 'should exit after 5 tries', () ->
-      mock = sinon.mock(process)
-      mock.expects('exit').once()
-
       bot.reconnectTryCount = 5
       bot.reconnect()
 
-      mock.verify()
       assert.ok bot.robot.logger.error.called
+      assert.ok bot.robot.emit.calledWith('hubot:restart')
