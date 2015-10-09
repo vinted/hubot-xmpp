@@ -4,6 +4,7 @@ XmppClient = require 'node-xmpp-client'
 JID = require('node-xmpp-core').JID
 ltx = require 'ltx'
 util = require 'util'
+stripAnsi = require 'strip-ansi'
 
 class XmppBot extends Adapter
 
@@ -358,6 +359,7 @@ class XmppBot extends Adapter
         message.attrs.to ?= params.to
         message.attrs.type ?= params.type
       else
+        msg = stripAnsi(msg)
         msg = msg.slice(0, 9977) + '... [message truncated]' if msg.length > 10000
 
         parsedMsg = try new ltx.parse(msg)

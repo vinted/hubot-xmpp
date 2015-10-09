@@ -672,6 +672,19 @@ describe 'XmppBot', ->
 
       bot.send envelope, Array(1500).join('testing')
 
+    it 'should strip ansi codes from messages', (done) ->
+      envelope =
+        user:
+          name: 'mark'
+          type: 'groupchat'
+        room: 'test@example.com'
+
+      bot.client.send = (msg) ->
+        assert.equal msg.getText(), 'SQL (1ms)  some sql statement\n'
+        done()
+
+      bot.send envelope, require('fs').readFileSync 'test/ansi.txt', 'utf-8'
+
   describe '#online', () ->
     bot = null
     beforeEach () ->

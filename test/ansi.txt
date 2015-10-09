@@ -1,0 +1,1 @@
+[1m[36mSQL (1ms)[0m  [1msome sql statement[0m
