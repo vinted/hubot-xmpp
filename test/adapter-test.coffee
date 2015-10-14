@@ -685,6 +685,19 @@ describe 'XmppBot', ->
 
       bot.send envelope, require('fs').readFileSync 'test/ansi.txt', 'utf-8'
 
+    it 'should strip control chars from messages', (done) ->
+      envelope =
+        user:
+          name: 'mark'
+          type: 'groupchat'
+        room: 'test@example.com'
+
+      bot.client.send = (msg) ->
+        assert.equal msg.getText(), 'some thing\n'
+        done()
+
+      bot.send envelope, require('fs').readFileSync 'test/ansi2.txt', 'utf-8'
+
   describe '#online', () ->
     bot = null
     beforeEach () ->
